@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mycelium</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&display=swap');
+
+:root {
+  --bg:#09100a; --soil:#0d1510; --soil-h:#131d14; --covered:#111a12;
+  --damp:#091410; --wrong-bg:#2a0808;
+  --myc:#7ec45a; --myc-glow:rgba(126,196,90,0.5); --myc-soft:rgba(126,196,90,0.12);
+  --gold:#c9a84c; --gold-dim:rgba(201,168,76,0.3); --gold-soft:rgba(201,168,76,0.07);
+  --text:#b8c4a8; --text-dim:rgba(184,196,168,0.32); --text-hi:#deeace;
+  --red:#c04040; --clue-done:#4a7a38;
+  --serif:'Cormorant Garamond',serif; --mono:'DM Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--serif);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");}
+
+/* SCREENS */
+.screen{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;transition:opacity 0.8s,transform 0.8s;}
+.screen.hide{opacity:0;transform:translateY(-10px);pointer-events:none;}
+
+/* TITLE TREATMENT */
+#intro-title-wrap { display:flex; flex-direction:column; align-items:center; gap:0; }
+#intro-pretitle {
+  font-family:var(--mono); font-size:13px; letter-spacing:12px;
+  color:var(--text-dim); text-transform:lowercase; margin-bottom:-8px;
+}
+#s-intro h1 {
+  font-weight:300; font-size:82px; letter-spacing:16px; color:var(--gold);
+  animation:breathe 5s ease-in-out infinite;
+}
+#aura-credit {
+  position:absolute; bottom:28px;
+  font-family:var(--mono); font-size:10px;
+  letter-spacing:4px; color:var(--text-dim);
+  text-transform:lowercase; opacity:0.6;
+}
+#game-title-wrap { display:flex; align-items:baseline; gap:6px; }
+#game-pretitle {
+  font-family:var(--mono); font-size:10px; letter-spacing:5px;
+  color:var(--text-dim); text-transform:lowercase;
+}
+#ghdr h1 { font-weight:300; font-size:24px; letter-spacing:10px; color:var(--gold); text-shadow:0 0 16px var(--gold-dim); }
+
+
+@keyframes breathe{0%,100%{text-shadow:0 0 40px var(--gold-dim);}50%{text-shadow:0 0 90px rgba(201,168,76,0.75),0 0 160px rgba(201,168,76,0.15);}}
+#s-intro p{font-style:italic;font-size:17px;color:var(--text-dim);text-align:center;line-height:2.1;max-width:340px;}
+#intro-spores{display:flex;gap:0;margin-top:8px;position:relative;width:200px;height:60px;}
+.ispore{position:absolute;border-radius:50%;background:var(--myc);animation:sporepulse 4s ease-in-out infinite;}
+@keyframes sporepulse{0%,100%{transform:scale(0.8);opacity:0.15;}50%{transform:scale(1.2);opacity:0.4;}}
+#intro-btns{display:flex;gap:16px;}
+
+/* LEVEL INTRO */
+#s-level h2{font-weight:300;font-size:42px;letter-spacing:8px;color:var(--text-hi);}
+#s-level .lsub{font-family:var(--mono);font-size:11px;letter-spacing:6px;color:var(--text-dim);}
+#s-level p{font-style:italic;font-size:15px;color:var(--text-dim);text-align:center;line-height:2;max-width:360px;}
+#s-level .hint-note{font-family:var(--mono);font-size:10px;color:rgba(126,196,90,0.35);letter-spacing:3px;text-align:center;}
+
+/* REVEAL */
+#s-reveal{gap:18px;}
+#s-reveal .rev-label{font-family:var(--mono);font-size:10px;letter-spacing:6px;color:var(--text-dim);}
+#s-reveal h2{font-weight:300;font-size:36px;letter-spacing:6px;color:var(--myc);text-shadow:0 0 30px var(--myc-glow);}
+#s-reveal p{font-style:italic;font-size:15px;color:var(--text-dim);text-align:center;line-height:2;max-width:320px;}
+#reveal-grid{display:grid;gap:5px;}
+.rcell{border-radius:50%;animation:rca 0.5s cubic-bezier(0.34,1.56,0.64,1) both;}
+@keyframes rca{from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;}}
+.rcell.empty{border-radius:3px;background:var(--covered)!important;box-shadow:none!important;opacity:0.18;}
+
+/* FIELD GUIDE */
+#s-guide{gap:24px;}
+#s-guide h2{font-weight:300;font-size:38px;letter-spacing:10px;color:var(--gold);}
+#s-guide .gsub{font-family:var(--mono);font-size:10px;letter-spacing:5px;color:var(--text-dim);}
+#guide-grid{display:grid;grid-template-columns:repeat(5,80px);gap:14px;max-height:60vh;overflow-y:auto;padding:4px;}
+.guide-cell{width:80px;height:80px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:3px;display:flex;align-items:center;justify-content:center;cursor:default;position:relative;transition:border-color 0.2s;}
+.guide-cell:hover{border-color:rgba(126,196,90,0.2);}
+.guide-cell canvas{width:64px;height:64px;image-rendering:pixelated;}
+.guide-cell.empty-slot{opacity:0.15;}
+.guide-cell.empty-slot::after{content:'?';font-family:var(--mono);font-size:18px;color:var(--text-dim);}
+#guide-empty{font-style:italic;font-size:15px;color:var(--text-dim);}
+
+/* BTN */
+.btn{font-family:var(--mono);font-size:12px;letter-spacing:5px;padding:11px 36px;background:transparent;border:1px solid var(--gold-dim);color:var(--gold);cursor:pointer;transition:all 0.3s;text-transform:lowercase;}
+.btn:hover{border-color:var(--gold);background:var(--gold-soft);box-shadow:0 0 22px rgba(201,168,76,0.12);}
+.btn.green{border-color:rgba(126,196,90,0.35);color:var(--myc);}
+.btn.green:hover{border-color:var(--myc);background:rgba(126,196,90,0.05);box-shadow:0 0 22px var(--myc-soft);}
+.btn.ghost{border-color:rgba(255,255,255,0.08);color:var(--text-dim);}
+.btn.ghost:hover{border-color:rgba(255,255,255,0.2);color:var(--text);}
+
+/* GAME */
+#game{display:flex;flex-direction:column;align-items:center;gap:14px;opacity:0;transition:opacity 0.8s;max-width:100vw;padding:0 8px;}
+#game.on{opacity:1;}
+#ghdr{display:flex;align-items:baseline;gap:18px;}
+#ghdr .gsub{font-style:italic;font-size:13px;color:var(--text-dim);}
+
+/* PUZZLE */
+#puzzle{display:flex;flex-direction:column;align-items:center;}
+#col-clues{display:flex;}
+.cc{font-family:var(--mono);font-size:14px;color:var(--text-dim);display:flex;align-items:flex-end;justify-content:center;height:28px;transition:color 0.5s,text-shadow 0.5s;}
+.cc.done{color:var(--clue-done);}
+#grid-row{display:flex;}
+#row-clues{display:flex;flex-direction:column;}
+.rc{font-family:var(--mono);font-size:14px;color:var(--text-dim);display:flex;align-items:center;justify-content:flex-end;padding-right:12px;transition:color 0.5s;}
+.rc.done{color:var(--clue-done);}
+
+#grid{display:grid;gap:3px;padding:3px;background:rgba(255,255,255,0.022);border:1px solid rgba(255,255,255,0.04);box-shadow:0 0 50px rgba(0,0,0,0.5),inset 0 0 30px rgba(0,0,0,0.3);}
+.cell{position:relative;background:var(--covered);cursor:pointer;border-radius:2px;display:flex;align-items:center;justify-content:center;transition:background 0.15s;}
+.cell:not(.myc):not(.wrong):hover{background:var(--soil-h);}
+.cell.flagged{background:var(--soil);}
+.cell.flagged::after{content:'·';font-size:22px;color:var(--text-dim);line-height:1;}
+.cell.wrong{background:var(--wrong-bg);animation:shake 0.3s ease;}
+@keyframes shake{0%,100%{transform:translateX(0);}30%{transform:translateX(-5px);}70%{transform:translateX(5px);}}
+.cell.wrong::after{content:'✕';font-family:var(--mono);font-size:15px;color:var(--red);}
+.cell.myc{background:var(--soil);cursor:default;}
+.myc-dot{width:52%;height:52%;border-radius:50%;background:var(--myc);box-shadow:0 0 10px var(--myc-glow),0 0 20px rgba(126,196,90,0.15);animation:mpulse 3.2s ease-in-out infinite;}
+@keyframes mpulse{0%,100%{transform:scale(1);box-shadow:0 0 10px var(--myc-glow);}50%{transform:scale(1.12);box-shadow:0 0 20px rgba(126,196,90,0.75),0 0 36px rgba(126,196,90,0.2);}}
+.cell.myc.win-flash .myc-dot{animation:wflash 0.7s ease both;}
+@keyframes wflash{0%{transform:scale(1);}50%{transform:scale(1.6);box-shadow:0 0 30px rgba(126,196,90,0.9),0 0 60px rgba(126,196,90,0.4);}100%{transform:scale(1);}}
+.cell.damp{background:var(--damp);}
+.damp-sym{font-family:var(--mono);font-size:12px;color:rgba(100,180,120,0.4);}
+.cell.hint-reveal{background:var(--soil);}
+.cell.hint-reveal .myc-dot{animation:hreveal 1s ease both;background:rgba(126,196,90,0.5);}
+@keyframes hreveal{from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;}}
+
+/* MOBILE */
+@media(max-width:500px){
+  #s-intro h1{font-size:56px;letter-spacing:10px;}
+  #intro-pretitle{font-size:11px;letter-spacing:8px;}
+  #s-level h2{font-size:32px;letter-spacing:4px;}
+  #s-level p{font-size:14px;max-width:290px;}
+  #s-reveal h2{font-size:28px;}
+  #s-reveal p{font-size:14px;}
+  #ghdr h1{font-size:20px;letter-spacing:8px;}
+  #game-pretitle{font-size:9px;letter-spacing:4px;}
+  #status{font-size:13px;min-width:0;width:90vw;}
+  #reminder{font-size:9px;letter-spacing:1px;}
+  #bottom-row{gap:16px;}
+  .btn{font-size:11px;letter-spacing:3px;padding:10px 28px;}
+  #guide-grid{grid-template-columns:repeat(4,72px)!important;}
+  .guide-cell{width:72px;height:72px;}
+  #aura-credit{font-size:9px;letter-spacing:3px;}
+}
+@media(max-width:360px){
+  #s-intro h1{font-size:44px;letter-spacing:8px;}
+  #guide-grid{grid-template-columns:repeat(3,72px)!important;}
+}
+
+#status{font-style:italic;font-size:15px;color:var(--text-dim);height:22px;text-align:center;min-width:360px;transition:opacity 0.25s,color 0.35s;letter-spacing:0.3px;}
+#status.hi{color:var(--myc);}
+#status.err{color:var(--red);}
+#status.warn{color:var(--gold);}
+#bottom-row{display:flex;gap:28px;align-items:center;}
+#mrow{display:flex;gap:9px;align-items:center;font-family:var(--mono);font-size:10px;letter-spacing:4px;color:var(--text-dim);}
+.mpip{width:7px;height:7px;border-radius:50%;background:rgba(192,64,64,0.18);transition:all 0.3s;}
+.mpip.lit{background:var(--red);box-shadow:0 0 7px rgba(192,64,64,0.55);}
+#hints-row{display:flex;gap:9px;align-items:center;font-family:var(--mono);font-size:10px;letter-spacing:4px;color:var(--text-dim);}
+.hpip{width:7px;height:7px;border-radius:50%;background:rgba(126,196,90,0.3);transition:all 0.3s;}
+.hpip.spent{background:rgba(255,255,255,0.05);box-shadow:none;}
+#reminder{font-family:var(--mono);font-size:10px;letter-spacing:3px;color:var(--text-dim);text-align:center;line-height:1.9;}
+</style>
+</head>
+<body>
+
+<!-- INTRO -->
+<div class="screen" id="s-intro">
+  <div id="intro-spores"></div>
+  <div id="intro-title-wrap">
+    <div id="intro-pretitle">hidden</div>
+    <h1>Hyphae</h1>
+  </div>
+  <p>Something is hidden in the soil.<br>The numbers know where it lives.<br>Find it.</p>
+  <div id="intro-btns">
+    <button class="btn" onclick="startJourney()">begin</button>
+    <button class="btn ghost" onclick="showGuide()">field guide</button>
+  </div>
+  <div id="aura-credit">an Aura Mation experience</div>
+</div>
+
+<!-- LEVEL INTRO -->
+<div class="screen hide" id="s-level">
+  <div class="lsub" id="ll"></div>
+  <h2 id="lt"></h2>
+  <p id="ld"></p>
+  <div class="hint-note" id="lh"></div>
+  <button class="btn" onclick="startCurrentLevel()">i'm ready</button>
+  <button class="btn ghost" onclick="showScreen('s-intro')" style="margin-top:-10px;">← back</button>
+</div>
+
+<!-- REVEAL -->
+<div class="screen hide" id="s-reveal">
+  <div class="rev-label">— organism identified —</div>
+  <h2 id="rev-name"></h2>
+  <div id="reveal-grid"></div>
+  <p id="rmsg"></p>
+  <div style="display:flex;gap:14px;">
+    <button class="btn ghost" onclick="showGuide('reveal')">field guide</button>
+    <button class="btn green" id="rbtn" onclick="nextLevel()">continue →</button>
+  </div>
+</div>
+
+<!-- FIELD GUIDE -->
+<div class="screen hide" id="s-guide">
+  <h2>field guide</h2>
+  <div class="gsub" id="guide-count"></div>
+  <div id="guide-grid"></div>
+  <div id="guide-empty" style="display:none">no organisms found yet. return to the soil.</div>
+  <button class="btn ghost" onclick="closeGuide()">← back</button>
+</div>
+
+<!-- GAME -->
+<div id="game">
+  <div id="ghdr">
+    <div id="game-title-wrap">
+      <span id="game-pretitle">hidden</span>
+      <h1>Hyphae</h1>
+    </div>
+    <span class="gsub" id="gtag"></span>
+  </div>
+  <div id="puzzle">
+    <div id="col-clues"></div>
+    <div id="grid-row">
+      <div id="row-clues"></div>
+      <div id="grid"></div>
+    </div>
+  </div>
+  <div id="status">—</div>
+  <div id="bottom-row">
+    <div id="mrow">
+      <span>mistakes</span>
+      <div class="mpip" id="mp0"></div>
+      <div class="mpip" id="mp1"></div>
+      <div class="mpip" id="mp2"></div>
+    </div>
+    <div id="hints-row">
+      <span>hints</span>
+      <div class="hpip" id="hp0"></div>
+      <div class="hpip" id="hp1"></div>
+      <div class="hpip" id="hp2"></div>
+    </div>
+  </div>
+  <div id="reminder"></div>
+</div>
+
+<script>
+// ── AUDIO ──
+let AC;
+function getAC(){ if(!AC) AC=new(window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); return AC; }
+function tone(freq,type,dur,vol=0.1,delay=0){
+  try{
+    const ac=getAC(),o=ac.createOscillator(),g=ac.createGain();
+    o.connect(g);g.connect(ac.destination);
+    o.type=type;o.frequency.value=freq;
+    const t=ac.currentTime+delay;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+0.01);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    o.start(t);o.stop(t+dur+0.05);
+  }catch(e){}
+}
+const SFX={
+  dig:()=>{tone(160,'sine',0.15,0.07);tone(300,'sine',0.1,0.03,0.02);},
+  found:()=>{tone(220,'sine',0.55,0.09);tone(330,'sine',0.45,0.06,0.04);tone(440,'sine',0.35,0.04,0.09);},
+  wrong:()=>{tone(110,'sawtooth',0.22,0.07);},
+  rowdone:()=>{tone(440,'sine',0.28,0.07);tone(554,'sine',0.22,0.05,0.07);},
+  hint:()=>{tone(330,'triangle',0.4,0.06);tone(440,'triangle',0.3,0.04,0.1);},
+  reveal:()=>{[196,247,294,370,440,523,659,784,988].forEach((f,i)=>tone(f,'sine',1.4-i*0.08,0.055+i*0.006,i*0.065));},
+};
+
+// ── SEEDED RNG ──
+function mulberry32(seed){
+  return function(){
+    seed|=0;seed=seed+0x6D2B79F5|0;
+    let t=Math.imul(seed^seed>>>15,1|seed);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return((t^t>>>14)>>>0)/4294967296;
+  };
+}
+
+// ── SPECIES NAMES ──
+const PREFIXES=['Amanita','Cordyceps','Boletus','Russula','Lactarius','Morchella','Galerina','Pholiota','Inocybe','Trametes','Cantharellus','Hygrophorus','Clitocybe','Cortinarius','Marasmius','Mycena'];
+const SUFFIXES=['Minor','Velata','Obscura','Profunda','Radians','Tenuis','Antiqua','Silvestris','Pallida','Ferox','Umbra','Nocturna','Calida','Frigida','Lenta','Vasta'];
+const FLAVOR=[
+  'it has been waiting a long time.',
+  'the soil remembers this shape.',
+  'older than the trees above it.',
+  'patient, and vast, and still.',
+  'it grew toward something it could not name.',
+  'the network holds a quiet intelligence.',
+  'it connects what the surface cannot see.',
+  'something passed through here once. it stayed.',
+  'the forest floor keeps its secrets well.',
+  'a mind without a center. a life without edges.',
+  'it spreads without urgency. it has nowhere else to be.',
+  'the organism exhales, slowly, in the dark.',
+  'roots once grew here. now something else does.',
+  'it has no memory, and needs none.',
+  'everything is connected, if you are patient.',
+  'it reached toward another organism, once. they are still touching.',
+];
+
+function speciesName(seed){ const r=mulberry32(seed); return PREFIXES[Math.floor(r()*PREFIXES.length)]+' '+SUFFIXES[Math.floor(r()*SUFFIXES.length)]; }
+function flavorText(seed){ const r=mulberry32(seed+999); return FLAVOR[Math.floor(r()*FLAVOR.length)]; }
+
+// ── PUZZLE GENERATOR ──
+function getTier(level){
+  if(level<=20) return {size:4,damp:false,density:[0.3,0.5]};
+  if(level<=50) return {size:5,damp:false,density:[0.3,0.5]};
+  if(level<=100) return {size:level%2===0?5:6,damp:level>70,density:[0.28,0.48]};
+  if(level<=200) return {size:level%3===0?7:6,damp:level%2===0,density:[0.25,0.45]};
+  return {size:Math.min(10,6+Math.floor((level-200)/40)),damp:true,density:[0.2,0.4]};
+}
+
+function generatePattern(size,density,rng){
+  // grow an organic blob using flood-fill style growth
+  const grid=Array.from({length:size},()=>Array(size).fill(0));
+  const target=Math.max(3,Math.floor(size*size*density));
+  // start near center
+  const sr=Math.floor(size/2)+Math.floor(rng()*3)-1;
+  const sc=Math.floor(size/2)+Math.floor(rng()*3)-1;
+  grid[Math.max(0,Math.min(size-1,sr))][Math.max(0,Math.min(size-1,sc))]=1;
+  let count=1;
+  const dirs=[[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
+  let attempts=0;
+  while(count<target&&attempts<10000){
+    attempts++;
+    // pick a random filled cell
+    const filled=[];
+    for(let r=0;r<size;r++) for(let c=0;c<size;c++) if(grid[r][c]) filled.push([r,c]);
+    const [fr,fc]=filled[Math.floor(rng()*filled.length)];
+    // pick a random neighbor
+    const [dr,dc]=dirs[Math.floor(rng()*dirs.length)];
+    const nr=fr+dr,nc=fc+dc;
+    if(nr>=0&&nr<size&&nc>=0&&nc<size&&!grid[nr][nc]){
+      grid[nr][nc]=1; count++;
+    }
+  }
+  return grid;
+}
+
+function generateDampCells(pattern,size,rng){
+  const damp=[];
+  const empty=[];
+  for(let r=0;r<size;r++) for(let c=0;c<size;c++) if(!pattern[r][c]) empty.push([r,c]);
+  // pick empty cells adjacent to mycelium
+  const candidates=empty.filter(([r,c])=>{
+    return [[0,1],[0,-1],[1,0],[-1,0]].some(([dr,dc])=>{
+      const nr=r+dr,nc=c+dc;
+      return nr>=0&&nr<size&&nc>=0&&nc<size&&pattern[nr][nc];
+    });
+  });
+  const count=Math.min(candidates.length,Math.floor(size*0.8));
+  const shuffled=[...candidates].sort(()=>rng()-0.5);
+  return shuffled.slice(0,count);
+}
+
+function getLevelData(level){
+  const tier=getTier(level);
+  const seed=level*2654435761;
+  const rng=mulberry32(seed);
+  const density=tier.density[0]+(tier.density[1]-tier.density[0])*rng();
+  const pattern=generatePattern(tier.size,density,rng);
+  const dampCells=tier.damp?generateDampCells(pattern,tier.size,rng):[];
+  return {
+    level, size:tier.size, pattern,
+    clues:tier.damp?'both':'numbers',
+    dampCells,
+    name:speciesName(seed),
+    flavor:flavorText(seed),
+  };
+}
+
+// level intro descriptions by tier
+function getLevelDesc(level,hasDamp){
+  if(level===1) return 'Each number is a total count. The "4" beside a row means exactly 4 cells in that row hold mycelium. A "0" means none. Start with the certain rows.';
+  if(level===2) return 'Use the row and column numbers together. Where they agree, you know for certain.';
+  if(level<=5) return 'The numbers are your only clues. Begin where the logic is clear.';
+  if(level===getTierStart('damp')) return 'Something new. Damp cells — marked ~ — mean mycelium lives within one step. Use the numbers and the soil together.';
+  if(hasDamp) return 'Numbers and damp soil. Two kinds of truth. Find where they agree.';
+  if(level%50===1) return 'A larger organism. The same tools. The same patience.';
+  return null; // no intro for most levels — just play
+}
+
+function getTierStart(name){
+  if(name==='damp') return 71;
+  return 1;
+}
+
+// ── SAVE ──
+function save(key,val){ try{localStorage.setItem('myc_'+key,JSON.stringify(val));}catch(e){} }
+function load(key,def){ try{const v=localStorage.getItem('myc_'+key);return v!==null?JSON.parse(v):def;}catch(e){return def;} }
+
+let currentLevel=load('level',1);
+let solved=load('solved',[]); // array of solved level numbers
+let state=[],mistakes=0,hints=0,SIZE=5,pat=[],ldata=null,won=false,longT=null;
+const MAX_M=3,MAX_H=3,HINT_COST=1; // one mistake = one hint
+
+// ── NAVIGATION ──
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.add('hide')); document.getElementById(id).classList.remove('hide'); }
+
+function startJourney(){
+  getAC();
+  const desc=getLevelDesc(currentLevel, getTier(currentLevel).damp);
+  ldata=getLevelData(currentLevel);
+  if(desc){
+    document.getElementById('ll').textContent=`— level ${currentLevel} —`;
+    document.getElementById('lt').textContent=ldata.name;
+    document.getElementById('ld').textContent=desc;
+    document.getElementById('lh').textContent=currentLevel<=3?'right-click or long-press to mark a cell as empty':'';
+    showScreen('s-level');
+  } else {
+    startCurrentLevel();
+  }
+}
+
+function startCurrentLevel(){
+  getAC();
+  if(!ldata) ldata=getLevelData(currentLevel);
+  SIZE=ldata.size; pat=ldata.pattern;
+  mistakes=0; hints=MAX_H; won=false;
+  state=Array.from({length:SIZE},()=>Array(SIZE).fill('covered'));
+  document.getElementById('gtag').textContent=`level ${currentLevel}`;
+  updatePips();
+  buildPuzzle();
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hide'));
+  document.getElementById('game').classList.add('on');
+  const rem=document.getElementById('reminder');
+  rem.innerHTML=ldata.clues==='both'?'numbers = total per row/col &nbsp;·&nbsp; ~ = mycelium within 1 cell':'numbers = total mycelium in that row / column';
+  setStatus(openingLine());
+}
+
+function openingLine(){
+  const lines=['the soil is still. begin where the numbers are certain.','something lives here. find it.','the organism waits, patient as ever.','read the numbers. the truth is already there.','quiet. deliberate. begin.','the forest floor holds its breath.'];
+  return lines[currentLevel%lines.length];
+}
+
+function nextLevel(){
+  currentLevel++;
+  save('level',currentLevel);
+  ldata=getLevelData(currentLevel);
+  document.getElementById('game').classList.remove('on');
+  const desc=getLevelDesc(currentLevel,getTier(currentLevel).damp);
+  if(desc){
+    document.getElementById('ll').textContent=`— level ${currentLevel} —`;
+    document.getElementById('lt').textContent=ldata.name;
+    document.getElementById('ld').textContent=desc;
+    document.getElementById('lh').textContent='';
+    showScreen('s-level');
+  } else {
+    startCurrentLevel();
+  }
+}
+
+// ── FIELD GUIDE ──
+let guideFrom='intro';
+function showGuide(from='intro'){
+  guideFrom=from;
+  const grid=document.getElementById('guide-grid');
+  const empty=document.getElementById('guide-empty');
+  grid.innerHTML='';
+  if(solved.length===0){ empty.style.display=''; grid.style.display='none'; }
+  else {
+    empty.style.display='none'; grid.style.display='grid';
+    solved.slice().reverse().forEach(lvl=>{
+      const ld=getLevelData(lvl);
+      const cell=document.createElement('div');
+      cell.className='guide-cell';
+      cell.title=ld.name;
+      const canvas=document.createElement('canvas');
+      canvas.width=64; canvas.height=64;
+      drawMiniOrganism(canvas,ld.pattern,ld.size);
+      cell.appendChild(canvas);
+      grid.appendChild(cell);
+    });
+  }
+  document.getElementById('guide-count').textContent=`${solved.length} organism${solved.length!==1?'s':''} found`;
+  showScreen('s-guide');
+}
+
+function closeGuide(){
+  if(guideFrom==='reveal') showScreen('s-reveal');
+  else showScreen('s-intro');
+}
+
+function drawMiniOrganism(canvas,pattern,size){
+  const ctx=canvas.getContext('2d');
+  const cs=Math.floor(64/size);
+  const off=Math.floor((64-cs*size)/2);
+  ctx.clearRect(0,0,64,64);
+  for(let r=0;r<size;r++) for(let c=0;c<size;c++){
+    if(pattern[r][c]){
+      ctx.fillStyle='#7ec45a';
+      ctx.shadowColor='rgba(126,196,90,0.6)';
+      ctx.shadowBlur=4;
+      ctx.beginPath();
+      ctx.arc(off+c*cs+cs/2,off+r*cs+cs/2,cs*0.42,0,Math.PI*2);
+      ctx.fill();
+    }
+  }
+}
+
+// ── BUILD PUZZLE ──
+function buildPuzzle(){
+  // Responsive cell size — fit grid into available screen space
+  const GAP=3,RCW=32;
+  const maxW=Math.min(window.innerWidth,window.innerHeight*1.1)-RCW-24;
+  const maxCELL=Math.floor((maxW-(SIZE+1)*GAP)/SIZE);
+  const CELL=Math.min(maxCELL,SIZE<=4?76:SIZE<=5?68:SIZE<=6?58:SIZE<=7?52:SIZE<=8?46:SIZE<=9?42:38);
+  const rClues=pat.map(row=>row.reduce((a,v)=>a+v,0));
+  const cClues=Array.from({length:SIZE},(_,c)=>pat.reduce((a,r)=>a+r[c],0));
+
+  const ccEl=document.getElementById('col-clues');
+  ccEl.innerHTML='';
+  const sp=document.createElement('div');sp.style.width=RCW+'px';ccEl.appendChild(sp);
+  cClues.forEach((n,c)=>{
+    const d=document.createElement('div');d.className='cc';d.id=`cc${c}`;
+    d.style.width=(CELL+GAP)+'px';d.textContent=n;ccEl.appendChild(d);
+  });
+
+  const rcEl=document.getElementById('row-clues');rcEl.innerHTML='';
+  rClues.forEach((n,r)=>{
+    const d=document.createElement('div');d.className='rc';d.id=`rc${r}`;
+    d.style.width=RCW+'px';d.style.height=(CELL+GAP)+'px';d.textContent=n;rcEl.appendChild(d);
+  });
+
+  const gEl=document.getElementById('grid');gEl.innerHTML='';
+  gEl.style.gridTemplateColumns=`repeat(${SIZE},${CELL}px)`;
+  gEl.style.gridTemplateRows=`repeat(${SIZE},${CELL}px)`;
+
+  for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
+    const cell=document.createElement('div');
+    cell.className='cell';cell.id=`c${r}-${c}`;
+    const isDamp=ldata.clues==='both'&&ldata.dampCells.some(([dr,dc])=>dr===r&&dc===c);
+    if(isDamp){cell.classList.add('damp');const s=document.createElement('span');s.className='damp-sym';s.textContent='~';cell.appendChild(s);}
+    cell.addEventListener('click',()=>{getAC();dig(r,c);});
+    cell.addEventListener('contextmenu',e=>{e.preventDefault();getAC();flag(r,c);});
+    cell.addEventListener('touchstart',()=>{longT=setTimeout(()=>{getAC();flag(r,c);},500);});
+    cell.addEventListener('touchend',()=>clearTimeout(longT));
+    cell.addEventListener('touchmove',()=>clearTimeout(longT));
+    gEl.appendChild(cell);
+  }
+}
+
+// ── INTERACTION ──
+function dig(r,c){
+  if(won)return;
+  const s=state[r][c];
+  if(s==='myc'||s==='wrong')return;
+  if(s==='flagged'){flag(r,c);return;}
+  SFX.dig();
+  if(pat[r][c]===1){
+    state[r][c]='myc';renderCell(r,c);SFX.found();
+    checkClues(r,c);
+    const msgs=['something glows beneath the soil.','the network stirs.','found.','there it is.','the organism reveals itself, slowly.'];
+    setStatus(msgs[Math.floor(Math.random()*msgs.length)],'hi');
+    checkWin();
+  } else {
+    state[r][c]='wrong';renderCell(r,c);SFX.wrong();
+    mistakes++;
+    // convert a mistake into a hint
+    if(hints>0){ hints--; }
+    updatePips();
+    const msgs=['only soil here.','nothing lives in this cell.','the numbers do not lie — look again.','empty.'];
+    setStatus(msgs[Math.floor(Math.random()*msgs.length)],'err');
+    setTimeout(()=>{if(state[r][c]==='wrong'){state[r][c]='covered';renderCell(r,c);setStatus(openingLine());}},900);
+    if(mistakes>=MAX_M) setTimeout(()=>useHintReveal(true),1000);
+  }
+}
+
+function flag(r,c){
+  if(won)return;
+  const s=state[r][c];
+  if(s==='myc')return;
+  state[r][c]=s==='flagged'?'covered':'flagged';
+  renderCell(r,c);
+}
+
+function useHintReveal(auto=false){
+  if(won)return;
+  if(hints<=0&&!auto){setStatus('no hints remaining. trust the numbers.','warn');return;}
+  // reveal one random unfound mycelium cell
+  const unfound=[];
+  for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) if(pat[r][c]===1&&state[r][c]!=='myc') unfound.push([r,c]);
+  if(unfound.length===0)return;
+  const [r,c]=unfound[Math.floor(Math.random()*unfound.length)];
+  state[r][c]='myc';
+  const cell=document.getElementById(`c${r}-${c}`);
+  if(cell){cell.classList.add('hint-reveal');}
+  renderCell(r,c);
+  SFX.hint();
+  if(!auto) hints--;
+  updatePips();
+  checkClues(r,c);
+  setStatus('the forest offers a clue.','warn');
+  checkWin();
+}
+
+function renderCell(r,c){
+  const cell=document.getElementById(`c${r}-${c}`);
+  if(!cell)return;
+  const s=state[r][c];
+  const isDamp=ldata.clues==='both'&&ldata.dampCells.some(([dr,dc])=>dr===r&&dc===c);
+  cell.className='cell'+(isDamp?' damp':'');
+  cell.innerHTML='';
+  if(isDamp&&s!=='myc'&&s!=='wrong'){const sp=document.createElement('span');sp.className='damp-sym';sp.textContent='~';cell.appendChild(sp);}
+  if(s==='myc'){cell.classList.add('myc');const d=document.createElement('div');d.className='myc-dot';cell.appendChild(d);}
+  else if(s==='flagged') cell.classList.add('flagged');
+  else if(s==='wrong') cell.classList.add('wrong');
+}
+
+function checkClues(r,c){
+  const rowDone=pat[r].every((_,ci)=>pat[r][ci]===0||state[r][ci]==='myc');
+  const rEl=document.getElementById(`rc${r}`);
+  if(rowDone&&rEl&&!rEl.classList.contains('done')){rEl.classList.add('done');SFX.rowdone();}
+  const colDone=pat.every((row,ri)=>row[c]===0||state[ri][c]==='myc');
+  const cEl=document.getElementById(`cc${c}`);
+  if(colDone&&cEl&&!cEl.classList.contains('done')) cEl.classList.add('done');
+}
+
+function checkWin(){
+  for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) if(pat[r][c]===1&&state[r][c]!=='myc') return;
+  won=true;
+  if(!solved.includes(currentLevel)){ solved.push(currentLevel); save('solved',solved); }
+  for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) if(pat[r][c]===1){ const el=document.getElementById(`c${r}-${c}`); if(el) el.classList.add('win-flash'); }
+  SFX.reveal();
+  setStatus('the organism reveals itself.','hi');
+  setTimeout(()=>showReveal(),1800);
+}
+
+function showReveal(){
+  const RG=document.getElementById('reveal-grid');
+  const RC=Math.min(32,Math.floor(200/SIZE));
+  RG.style.gridTemplateColumns=`repeat(${SIZE},${RC}px)`;
+  RG.style.gridTemplateRows=`repeat(${SIZE},${RC}px)`;
+  RG.style.gap='5px';RG.innerHTML='';
+  // sort reveal from center out
+  let sr=0,sc=0,cnt=0;
+  pat.forEach((row,r)=>row.forEach((v,c)=>{if(v){sr+=r;sc+=c;cnt++;}}));
+  const cr=cnt?sr/cnt:SIZE/2,cc2=cnt?sc/cnt:SIZE/2;
+  const cells=[];
+  for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) cells.push({r,c,d:Math.hypot(r-cr,c-cc2)});
+  cells.sort((a,b)=>a.d-b.d);
+  const dm={};cells.forEach((cl,i)=>{dm[`${cl.r},${cl.c}`]=i*38;});
+  for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
+    const d=document.createElement('div');
+    d.className='rcell'+(pat[r][c]===0?' empty':'');
+    d.style.width=RC+'px';d.style.height=RC+'px';
+    d.style.animationDelay=dm[`${r},${c}`]+'ms';
+    if(pat[r][c]===1){d.style.background='var(--myc)';d.style.boxShadow='0 0 10px var(--myc-glow)';}
+    RG.appendChild(d);
+  }
+  document.getElementById('rev-name').textContent=ldata.name;
+  document.getElementById('rmsg').textContent=ldata.flavor;
+  document.getElementById('rbtn').textContent='continue →';
+  document.getElementById('game').classList.remove('on');
+  showScreen('s-reveal');
+}
+
+// ── UI ──
+function setStatus(msg,type=''){
+  const el=document.getElementById('status');
+  el.style.opacity=0;
+  setTimeout(()=>{el.textContent=msg;el.className=type;el.style.opacity=1;},150);
+}
+
+function updatePips(){
+  for(let i=0;i<MAX_M;i++){const p=document.getElementById(`mp${i}`);if(p)p.className='mpip'+(i<mistakes?' lit':'');}
+  for(let i=0;i<MAX_H;i++){const p=document.getElementById(`hp${i}`);if(p)p.className='hpip'+(i>=hints?' spent':'');}
+}
+
+// ── INTRO SPORES ──
+function buildIntroSpores(){
+  const el=document.getElementById('intro-spores');
+  el.innerHTML='';
+  const positions=[[20,15],[60,30],[100,10],[140,35],[180,20],[40,50],[120,45],[80,55]];
+  const sizes=[6,8,5,10,7,6,9,5];
+  positions.forEach(([left,top],i)=>{
+    const d=document.createElement('div');
+    d.className='ispore';
+    d.style.left=left+'px';d.style.top=top+'px';
+    d.style.width=sizes[i]+'px';d.style.height=sizes[i]+'px';
+    d.style.animationDelay=(i*0.6)+'s';
+    el.appendChild(d);
+  });
+}
+
+buildIntroSpores();
+
+// Rebuild grid on resize/rotate
+let resizeTimer;
+window.addEventListener('resize',()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(()=>{
+    if(document.getElementById('game').classList.contains('on')&&!won){
+      buildPuzzle();
+    }
+  },200);
+});
+</script>
+</body>
+</html>
