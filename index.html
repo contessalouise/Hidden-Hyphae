@@ -94,7 +94,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;ba
 /* GAME */
 #game{display:flex;flex-direction:column;align-items:center;gap:14px;opacity:0;transition:opacity 0.8s;max-width:100vw;padding:0 8px;}
 #game.on{opacity:1;}
-#ghdr{display:flex;align-items:baseline;gap:18px;}
+#ghdr{display:flex;align-items:center;gap:14px;justify-content:center;flex-wrap:wrap;}
 #ghdr .gsub{font-style:italic;font-size:13px;color:var(--text-dim);}
 
 /* PUZZLE */
@@ -214,6 +214,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;ba
 <!-- GAME -->
 <div id="game">
   <div id="ghdr">
+    <button class="btn ghost" id="menu-btn" onclick="showScreen('s-intro')" style="font-size:10px;letter-spacing:3px;padding:6px 14px;">← menu</button>
     <div id="game-title-wrap">
       <span id="game-pretitle">hidden</span>
       <h1>Hyphae</h1>
@@ -502,11 +503,12 @@ function drawMiniOrganism(canvas,pattern,size){
 
 // ── BUILD PUZZLE ──
 function buildPuzzle(){
-  // Responsive cell size — fit grid into available screen space
-  const GAP=3,RCW=32;
-  const maxW=Math.min(window.innerWidth,window.innerHeight*1.1)-RCW-24;
-  const maxCELL=Math.floor((maxW-(SIZE+1)*GAP)/SIZE);
-  const CELL=Math.min(maxCELL,SIZE<=4?76:SIZE<=5?68:SIZE<=6?58:SIZE<=7?52:SIZE<=8?46:SIZE<=9?42:38);
+  const GAP=3, RCW=32;
+  // Use only viewport width for reliability on mobile Safari
+  const availW = Math.min(window.innerWidth, 600) - RCW - 32;
+  const maxFromWidth = Math.floor((availW - (SIZE+1)*GAP) / SIZE);
+  const idealCell = SIZE<=4?76:SIZE<=5?68:SIZE<=6?58:SIZE<=7?52:SIZE<=8?46:SIZE<=9?42:38;
+  const CELL = Math.max(36, Math.min(maxFromWidth, idealCell));
   const rClues=pat.map(row=>row.reduce((a,v)=>a+v,0));
   const cClues=Array.from({length:SIZE},(_,c)=>pat.reduce((a,r)=>a+r[c],0));
 
